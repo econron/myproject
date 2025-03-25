@@ -27,7 +27,7 @@ app.post('/api/process-opinion', async (req, res) => {
     if (language === 'en') {
       // 英語の添削
       const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -44,7 +44,7 @@ app.post('/api/process-opinion', async (req, res) => {
 
       // 重要な表現の抽出
       const expressionsCompletion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -67,7 +67,7 @@ app.post('/api/process-opinion', async (req, res) => {
     } else {
       // 日本語から英語への翻訳
       const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -86,7 +86,7 @@ app.post('/api/process-opinion', async (req, res) => {
 
       // 翻訳された英文から重要な表現を抽出
       const expressionsCompletion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
