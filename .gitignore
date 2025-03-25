@@ -32,3 +32,10 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw? 
+
+# backend
+backend/node_modules
+backend/.env
+backend/dist
+backend/build
+backend/coverage

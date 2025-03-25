@@ -128,15 +128,74 @@ const DiscussionSelectionScreen: React.FC<ScreenProps> = ({ onNext }) => {
 const OpinionInputScreen: React.FC<ScreenProps> = ({ onNext }) => {
   const [opinion, setOpinion] = useState<string>("");
   const [language, setLanguage] = useState<"en" | "jp">("en");
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  const processOpinion = async () => {
+    if (!opinion.trim()) {
+      alert("Please enter your opinion before submitting.");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch("/api/process-opinion", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: opinion,
+          language: language,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to process opinion");
+      }
+
+      const result = await response.json();
+      // 結果を次の画面に渡すために、URLパラメータとしてエンコード
+      const encodedResult = encodeURIComponent(JSON.stringify(result));
+      window.location.href = `/feedback?result=${encodedResult}`;
+    } catch (error) {
+      console.error("Error processing opinion:", error);
+      alert("An error occurred while processing your opinion. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div>
       <h1>Opinion Input</h1>
       <div style={{ marginBottom: "1rem" }}>
-        <button onClick={() => setLanguage("en")} disabled={language === "en"}>
+        <button 
+          onClick={() => setLanguage("en")} 
+          disabled={language === "en"}
+          style={{
+            padding: "8px 16px",
+            marginRight: "8px",
+            backgroundColor: language === "en" ? "#007bff" : "#f8f9fa",
+            color: language === "en" ? "white" : "black",
+            border: "1px solid #dee2e6",
+            borderRadius: "4px",
+            cursor: language === "en" ? "default" : "pointer"
+          }}
+        >
           English
         </button>
-        <button onClick={() => setLanguage("jp")} disabled={language === "jp"} style={{ marginLeft: "0.5rem" }}>
+        <button 
+          onClick={() => setLanguage("jp")} 
+          disabled={language === "jp"}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: language === "jp" ? "#007bff" : "#f8f9fa",
+            color: language === "jp" ? "white" : "black",
+            border: "1px solid #dee2e6",
+            borderRadius: "4px",
+            cursor: language === "jp" ? "default" : "pointer"
+          }}
+        >
           日本語
         </button>
       </div>
@@ -146,20 +205,109 @@ const OpinionInputScreen: React.FC<ScreenProps> = ({ onNext }) => {
         placeholder={language === "en" ? "Write your opinion in English..." : "日本語でご意見を入力してください..."}
         style={{ width: "100%", height: "150px", marginBottom: "1rem" }}
       />
-      <button onClick={onNext}>Submit Opinion</button>
+      <button 
+        onClick={processOpinion}
+        disabled={isProcessing}
+        style={{
+          backgroundColor: isProcessing ? "#ccc" : "#007bff",
+          color: "white",
+          padding: "8px 16px",
+          border: "none",
+          borderRadius: "4px",
+          cursor: isProcessing ? "not-allowed" : "pointer"
+        }}
+      >
+        {isProcessing ? "Processing..." : "Submit Opinion"}
+      </button>
     </div>
   );
 };
 
 // 6. 添削・フィードバック画面
 const FeedbackScreen: React.FC<ScreenProps> = ({ onNext }) => {
-  const feedback = "Your opinion is well articulated. Consider using expressions like 'in my opinion' or 'I believe that' to further structure your argument.";
+  const [feedback, setFeedback] = useState<string>("");
+  const [translation, setTranslation] = useState<string>("");
+  const [keyExpressions, setKeyExpressions] = useState<Array<{
+    expression: string;
+    translation: string;
+    usage: string;
+  }>>([]);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resultParam = params.get("result");
+    if (resultParam) {
+      try {
+        const result = JSON.parse(decodeURIComponent(resultParam));
+        setFeedback(result.feedback);
+        setTranslation(result.translation);
+        setKeyExpressions(result.keyExpressions || []);
+      } catch (error) {
+        console.error("Error parsing result:", error);
+      }
+    }
+  }, []);
 
   return (
     <div>
       <h1>Feedback</h1>
-      <p>{feedback}</p>
-      <button onClick={onNext}>Proceed to Lesson Summary</button>
+      {feedback && (
+        <div style={{ marginBottom: "2rem" }}>
+          <h3>Feedback:</h3>
+          <p>{feedback}</p>
+        </div>
+      )}
+      {translation && (
+        <div style={{ marginBottom: "2rem" }}>
+          <h3>Translation:</h3>
+          <p>{translation}</p>
+        </div>
+      )}
+      {keyExpressions.length > 0 && (
+        <div style={{ marginBottom: "2rem" }}>
+          <h3>Key Expressions for Speaking:</h3>
+          <div style={{ 
+            display: "grid", 
+            gap: "1rem",
+            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))"
+          }}>
+            {keyExpressions.map((item, index) => (
+              <div 
+                key={index}
+                style={{
+                  padding: "1rem",
+                  border: "1px solid #dee2e6",
+                  borderRadius: "8px",
+                  backgroundColor: "#f8f9fa"
+                }}
+              >
+                <h4 style={{ marginBottom: "0.5rem", color: "#007bff" }}>
+                  {item.expression}
+                </h4>
+                <p style={{ marginBottom: "0.5rem", fontWeight: "bold" }}>
+                  {item.translation}
+                </p>
+                <p style={{ fontSize: "0.9rem", color: "#6c757d" }}>
+                  {item.usage}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <button 
+        onClick={onNext}
+        style={{
+          backgroundColor: "#007bff",
+          color: "white",
+          padding: "8px 16px",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer"
+        }}
+      >
+        Proceed to Lesson Summary
+      </button>
     </div>
   );
 };
